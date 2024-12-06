@@ -1,21 +1,22 @@
 #!/bin/bash
 
 # the cf ddns script by K0p1-Git modified with some notification options and dockerized by me
+# https://github.com/K0p1-Git/cloudflare-ddns-updater
 
 #env vars
-auth_email="${AUTH_EMAIL}"
-auth_method="${AUTH_METHOD}"
-auth_key="${AUTH_KEY}"
-zone_identifier="${ZONE_IDENTIFIER}"
-record_name="${RECORD_NAME}"
-ttl="${TTL}"
-proxy="${PROXY}"
+auth_email="${AUTH_EMAIL}"                   # The email used to login 'https://dash.cloudflare.com'
+auth_method="${AUTH_METHOD}"                 # Set to "global" for Global API Key or "token" for Scoped API Token
+auth_key="${AUTH_KEY}"                       # Your API Token or Global API Key
+zone_identifier="${ZONE_IDENTIFIER}"         # Can be found in the "Overview" tab of your domain
+record_name="${RECORD_NAME}"                 # Which record you want to be synced
+ttl="${TTL}"                                 # Set the TTL (Time to Live) for the record, min value 120
+proxy="${PROXY}"                             # Set the proxy status, true or false
 
-sitename="${SITENAME}"
-notification_level="${NOTIFICATION_LEVEL}"
-slackuri="${SLACKURI}"
-slackchannel="${SLACKCHANNEL}"
-discorduri="${DISCORDURI}"
+sitename="${SITENAME}"                       # The name of the site
+notification_level="${NOTIFICATION_LEVEL}"   # The level of notification to send. Options: always, on_success_or_error, on_error
+slackuri="${SLACKURI}"                       # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
+slackchannel="${SLACKCHANNEL}"               # The channel to send slack notifications to
+discorduri="${DISCORDURI}"                   # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
 ntfyuri="${NTFYURI}"
 telegram_token="${TELEGRAM_TOKEN}"
 telegram_chat_id="${TELEGRAM_CHAT_ID}"
@@ -127,7 +128,7 @@ fi
 old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
 # Compare if they're the same
 if [[ $ip == $old_ip ]]; then
-  log "Update skipped because IP ($ip) for ${record_name} hast not changed."
+  log "Update skipped because IP ($ip) for ${record_name} has not changed."
   notify "debug" "DDNS-Update Skipped: IP ($ip) for ${record_name} has not changed."
   exit 0
 fi
@@ -135,7 +136,7 @@ fi
 ###########################################
 ## Set the record identifier from result
 ###########################################
-record_identifier=$(echo "$record" | sed -E 's/.*"id":"(\w+)".*/\1/')
+record_identifier=$(echo "$record" | sed -E 's/.*"id":"([A-Za-z0-9_]+)".*/\1/')
 
 ###########################################
 ## Change the IP@Cloudflare using the API
@@ -144,7 +145,7 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
                      -H "X-Auth-Email: $auth_email" \
                      -H "$auth_header $auth_key" \
                      -H "Content-Type: application/json" \
-                     --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
+                     --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":$ttl,\"proxied\":${proxy}}")
 
 ###########################################
 ## Report the status
